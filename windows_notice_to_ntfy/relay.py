@@ -8,8 +8,11 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib import request
 from urllib.parse import urlparse
+
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from .config import AppConfig
 from .logging_utils import Logger
@@ -154,7 +157,6 @@ def convert_payload(payload: dict[str, Any], config: AppConfig) -> dict[str, Any
 
 def publish_to_ntfy(body: dict[str, Any], config: AppConfig) -> dict[str, Any]:
     server = config.ntfy.server.rstrip("/") + "/"
-    data = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     headers = {"Content-Type": "application/json; charset=utf-8"}
 
     if config.ntfy.token:
@@ -163,10 +165,20 @@ def publish_to_ntfy(body: dict[str, Any], config: AppConfig) -> dict[str, Any]:
         raw = f"{config.ntfy.username}:{config.ntfy.password}".encode("utf-8")
         headers["Authorization"] = "Basic " + base64.b64encode(raw).decode("ascii")
 
-    req = request.Request(server, data=data, headers=headers, method="POST")
-    with request.urlopen(req, timeout=30) as response:
-        raw = response.read().decode("utf-8")
-    return json.loads(raw)
+    retry = Retry(
+        total=3,
+        connect=3,
+        read=3,
+        backoff_factor=1.0,
+        allowed_methods=frozenset({"POST"}),
+        status_forcelist=(429, 500, 502, 503, 504),
+    )
+    session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    session.mount("http://", HTTPAdapter(max_retries=retry))
+    response = session.post(server, headers=headers, json=body, timeout=30)
+    response.raise_for_status()
+    return response.json()
 
 
 @dataclass(slots=True)
@@ -258,4 +270,3 @@ def serve_relay(config: AppConfig, log_path: str | Path) -> None:
         logger.log("Relay stopped.", "WARN")
     finally:
         server.server_close()
-

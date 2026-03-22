@@ -9,6 +9,7 @@ description = "Forward Windows toast notifications to an ntfy topic."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "requests>=2.32.0,<3",
     "windows11toast==1.2.6",
     "winrt-Windows.ApplicationModel==3.2.1",
     "winrt-Windows.Data.Xml.Dom==3.2.1",
