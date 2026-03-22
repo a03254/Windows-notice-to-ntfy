@@ -1,0 +1,8 @@
+config.json
+relay-events.log
+relay.err.log
+relay.out.log
+windows-forwarder.log
+
+*.tmp
+*.bak

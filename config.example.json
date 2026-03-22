@@ -1,0 +1,29 @@
+{
+  "listenPrefix": "http://127.0.0.1:8787/notify/",
+  "ntfy": {
+    "server": "https://ntfy.sh/",
+    "topic": "replace-with-your-random-topic",
+    "token": "",
+    "username": "",
+    "password": "",
+    "priority": 3,
+    "tags": [
+      "windows",
+      "desktop"
+    ],
+    "markdown": false,
+    "click": "",
+    "icon": ""
+  },
+  "forwarding": {
+    "includeAppNameInTitle": true,
+    "includeComputerNameInMessage": true,
+    "fallbackTitle": "Windows Notification",
+    "fallbackMessage": "Received a Windows notification with no recognized text fields.",
+    "appendRawJsonOnEmpty": true,
+    "maxMessageLength": 3500
+  },
+  "logging": {
+    "logPayloadPreview": true
+  }
+}
