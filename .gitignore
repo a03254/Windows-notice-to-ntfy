@@ -3,6 +3,10 @@ relay-events.log
 relay.err.log
 relay.out.log
 windows-forwarder.log
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
 
 *.tmp
 *.bak

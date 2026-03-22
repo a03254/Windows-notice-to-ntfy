@@ -1,50 +1,55 @@
 # Windows Notice to ntfy
 
-Forward Windows toast notifications to an `ntfy` topic.
+Forward Windows toast notifications to an `ntfy` topic with a Python implementation.
 
-This project provides a fully local Windows pipeline:
+This project is no longer based on PowerShell-first logic. The core pieces are now implemented as a structured Python CLI:
 
-1. Listen to Windows toast notifications
-2. Convert them into a simple JSON payload
-3. Forward them to a local relay
-4. Publish them to your `ntfy` server or `ntfy.sh`
-5. Receive them on your phone or desktop subscriber
-
-This repository does not include any personal topic, token, or private server configuration.
+- a local relay HTTP server
+- a Windows notification listener
+- a local test toast sender
+- a combined `run` mode for normal daily use
 
 ## Features
 
-- Free local Windows notification forwarder
-- Local relay for ntfy publishing
-- One-click start and stop scripts
-- Local test toast generator
-- Supports Chinese content
-- Works with public `ntfy.sh` or a self-hosted ntfy server
+- Python-based relay and listener
+- Windows toast capture via WinRT
+- UTF-8 safe forwarding, including Chinese content
+- Works with `ntfy.sh` or a self-hosted ntfy server
+- Local config kept out of git
+- Optional `.cmd` wrappers for double-click usage on Windows
 
-## Project Files
+## Repository Layout
 
-- `config.example.json`: sample relay configuration
-- `Start-NtfyRelay.ps1`: local relay, receives JSON and publishes to ntfy
-- `Start-WindowsNotificationForwarder.ps1`: Windows toast listener
-- `Run-NtfyRelay.cmd`: start only the relay
-- `Run-WindowsNotificationForwarder.cmd`: start only the Windows listener
-- `Run-All.cmd`: start relay and listener together
-- `Stop-All.cmd`: stop both windows
-- `Send-TestWindowsNotification.ps1`: send a local Windows toast
-- `Send-TestWindowsNotification.cmd`: double-click wrapper for the test toast
+- `windows_notice_to_ntfy/`: main Python package
+- `requirements.txt`: Python dependencies
+- `config.example.json`: sample configuration
+- `Run-All.cmd`: double-click wrapper for `python -m windows_notice_to_ntfy run`
+- `Send-TestWindowsNotification.cmd`: double-click wrapper for `python -m windows_notice_to_ntfy test-toast`
 
 ## Requirements
 
 - Windows 10 or Windows 11
-- PowerShell 5.1 or newer
-- Notification access enabled for the PowerShell process when prompted
+- Python 3.11 or newer
 - Network access to your ntfy server
+- Notification access enabled for the current Python process when prompted
 
-## Quick Start
+## Installation
 
-### 1. Create local config
+### 1. Install the project
 
-Copy the example config:
+Recommended editable install:
+
+```powershell
+python -m pip install -e .
+```
+
+Alternative dependency-only install:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+### 2. Create local config
 
 ```powershell
 Copy-Item config.example.json config.json
@@ -52,7 +57,7 @@ Copy-Item config.example.json config.json
 
 Edit `config.json` and set your own ntfy server and topic.
 
-Example:
+Minimal example:
 
 ```json
 {
@@ -72,98 +77,107 @@ Example:
 }
 ```
 
-### 2. Start the full pipeline
+## Quick Start
 
-Double-click:
+### Start the full pipeline
+
+Recommended:
+
+```powershell
+python -m windows_notice_to_ntfy run --config config.json
+```
+
+Windows double-click wrapper:
 
 ```text
 Run-All.cmd
 ```
 
-This opens two windows:
+This starts:
 
-- `ntfy relay`
-- `windows notification forwarder`
+- the local relay server
+- the Windows notification listener
 
-You can also start them separately:
+Press `Ctrl+C` to stop the process.
 
-```text
-Run-NtfyRelay.cmd
-Run-WindowsNotificationForwarder.cmd
-```
+## CLI Usage
 
-### 3. Allow notification access
-
-On first run, Windows may deny notification access.
-
-If that happens:
-
-1. Run the listener once
-2. Windows Settings will open
-3. Allow notification access for the current PowerShell / terminal process
-4. Start the listener again
-
-### 4. Subscribe in the ntfy app
-
-Open your ntfy app and subscribe to the topic you configured in `config.json`.
-
-If you use the public service, the subscription format is:
-
-```text
-https://ntfy.sh/<your-topic>
-```
-
-## Usage Tutorial
-
-### Normal daily usage
-
-1. Edit `config.json` once
-2. Start `Run-All.cmd`
-3. Keep the two windows open
-4. Use Windows normally
-5. Notifications that appear in Windows Notification Center will be forwarded to ntfy
-
-### Stop the program
-
-Double-click:
-
-```text
-Stop-All.cmd
-```
-
-Or close the two command windows manually.
-
-## Test Tutorial
-
-### Test relay only
-
-Run:
+### Run relay only
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Test-NtfyRelay.ps1
+python -m windows_notice_to_ntfy relay --config config.json
 ```
 
-If your phone receives the message, the relay and ntfy publishing are working.
+### Run listener only
 
-### Test full Windows notification forwarding
+```powershell
+python -m windows_notice_to_ntfy listener --config config.json
+```
 
-Run:
+### Run relay + listener together
+
+```powershell
+python -m windows_notice_to_ntfy run --config config.json
+```
+
+### Send a local Windows test toast
+
+```powershell
+python -m windows_notice_to_ntfy test-toast
+```
+
+Custom test content:
+
+```powershell
+python -m windows_notice_to_ntfy test-toast --title "中文测试" --message "这是一条中文通知"
+```
+
+Windows double-click wrapper:
 
 ```text
 Send-TestWindowsNotification.cmd
 ```
 
-This sends a local Windows toast notification.
+## Usage Tutorial
 
-If your phone receives that message, the full pipeline is working:
+### First run
+
+1. Install dependencies
+2. Copy `config.example.json` to `config.json`
+3. Configure your ntfy server and topic
+4. Start the full pipeline with `python -m windows_notice_to_ntfy run --config config.json`
+5. If Windows opens notification privacy settings, allow notification access
+6. Subscribe to your topic in the ntfy app
+
+### Normal daily use
+
+1. Start the program
+2. Keep the process running
+3. Use Windows normally
+4. Notifications that appear in Windows Notification Center will be forwarded to ntfy
+
+## Testing
+
+### Test ntfy publishing end to end
+
+1. Start the full pipeline
+2. Run:
+
+```powershell
+python -m windows_notice_to_ntfy test-toast
+```
+
+3. Check your phone
+
+If your phone receives the notification, the full path is working:
 
 `Windows toast -> listener -> relay -> ntfy -> phone`
 
-## Configuration Guide
+## Configuration Reference
 
 ### `listenPrefix`
 
-Local HTTP endpoint for the relay.
+Local relay address.
 
 Default:
 
@@ -173,7 +187,7 @@ http://127.0.0.1:8787/notify/
 
 ### `ntfy.server`
 
-The ntfy server root URL.
+Root URL of your ntfy server.
 
 Examples:
 
@@ -184,17 +198,21 @@ https://your-ntfy-server.example.com/
 
 ### `ntfy.topic`
 
-Your target topic.
+Your destination topic.
 
-Use a random, hard-to-guess topic if the topic is public.
+Use a random, hard-to-guess topic if it is public.
 
 ### `ntfy.token`
 
-Bearer token for authenticated ntfy publishing.
+Optional bearer token.
 
-### `ntfy.username` / `ntfy.password`
+### `ntfy.username` and `ntfy.password`
 
 Optional basic authentication credentials.
+
+### `ntfy.tags`
+
+Default ntfy tags added to outgoing notifications.
 
 ### `forwarding.includeAppNameInTitle`
 
@@ -202,53 +220,52 @@ Use the Windows app name as the ntfy title.
 
 ### `forwarding.includeComputerNameInMessage`
 
-Adds the local computer name into the message body.
+Include the local computer name in the message body.
+
+## Logs
+
+The program writes useful runtime logs to:
+
+- `relay-events.log`
+- `windows-forwarder.log`
 
 ## Troubleshooting
 
-### Notifications do not arrive on the phone
+### No notifications arrive on the phone
 
 Check:
 
-1. `Run-All.cmd` is still running
-2. The correct topic is subscribed in the ntfy app
-3. `config.json` points to the correct ntfy server and topic
-4. Notification access is allowed in Windows
+1. The process is still running
+2. The topic in `config.json` matches the subscribed topic
+3. `config.json` points to the correct ntfy server
+4. Windows notification access was granted
 
 ### Windows notifications are not being captured
 
-Not every popup is readable through the Windows notification listener API.
+Not every popup is exposed through the Windows notification listener API.
 
-Prefer testing with notifications that appear in Windows Notification Center, such as:
+Prefer testing with notifications that appear in Windows Notification Center, for example:
 
 - Mail
-- Edge download finished
+- Edge download complete
 - Windows Security
-- Other standard toast notifications
+- Standard app toast notifications
 
-### Android app only updates after manual refresh
+### Android does not notify instantly
 
 On Android, check:
 
 1. Notification permission is enabled for ntfy
 2. Battery optimization is disabled for ntfy
 3. Background activity is allowed
-4. Vendor-specific app protection is enabled if needed
-
-### Logs
-
-Useful log files:
-
-- `relay-events.log`
-- `windows-forwarder.log`
+4. Vendor-specific background restrictions are disabled
 
 ## Privacy and Security
 
-- `config.json` is intentionally ignored by git
+- `config.json` is ignored by git and should remain local
 - Do not commit real topics, tokens, usernames, or passwords
-- Prefer your own ntfy topic
 - Prefer authentication if you use a shared or self-hosted ntfy server
 
 ## License
 
-Add your preferred open source license to this repository if you plan to publish it publicly.
+Add your preferred open source license before publishing broadly.

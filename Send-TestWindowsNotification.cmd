@@ -2,9 +2,4 @@
 setlocal
 
 cd /d "%~dp0"
-title send test windows notification
-
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Send-TestWindowsNotification.ps1"
-
-echo.
-pause
+python -m windows_notice_to_ntfy test-toast --title "ntfy forwarder test" --message "If this toast is forwarded to your phone, the Windows notification listener is working."
